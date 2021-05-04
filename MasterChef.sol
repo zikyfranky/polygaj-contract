@@ -9,10 +9,10 @@ import "./Ownable.sol";
 
 import "./GajToken.sol";
 
-// MasterChef is the master of Gaj. He can make Gaj and he is a fair guy.
+// MasterChef is the master of Egg. He can make Egg and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once Gaj is sufficiently
+// will be transferred to a governance smart contract once EGG is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
@@ -25,13 +25,13 @@ contract MasterChef is Ownable {
         uint256 amount;         // How many LP tokens the user has provided.
         uint256 rewardDebt;     // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of Gajs
+        // We do some fancy math here. Basically, any point in time, the amount of EGGs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accGajPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accEggPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accGajPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accEggPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -40,17 +40,17 @@ contract MasterChef is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IBEP20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. Gajs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that Gajs distribution occurs.
-        uint256 accGajPerShare;   // Accumulated Gajs per share, times 1e12. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. EGGs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that EGGs distribution occurs.
+        uint256 accEggPerShare;   // Accumulated EGGs per share, times 1e12. See below.
         uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
-    // The Gaj TOKEN!
+    // The EGG TOKEN!
     GajToken public gaj;
     // Dev address.
     address public devaddr;
-    // GAJ tokens created per block.
+    // EGG tokens created per block.
     uint256 public gajPerBlock;
     // Bonus muliplier for early gaj makers.
     uint256 public constant BONUS_MULTIPLIER = 1;
@@ -63,7 +63,7 @@ contract MasterChef is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when GAJ mining starts.
+    // The block number when EGG mining starts.
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -91,7 +91,7 @@ contract MasterChef is Ownable {
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function add(uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, bool _withUpdate) public onlyOwner {
-        require(_depositFeeBP <= 350, "add: invalid deposit fee basis points");
+        require(_depositFeeBP <= 10000, "add: invalid deposit fee basis points");
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -101,14 +101,14 @@ contract MasterChef is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accGajPerShare: 0,
+            accEggPerShare: 0,
             depositFeeBP: _depositFeeBP
         }));
     }
 
-    // Update the given pool's Gaj allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's EGG allocation point and deposit fee. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, bool _withUpdate) public onlyOwner {
-        require(_depositFeeBP <= 350, "set: invalid deposit fee basis points");
+        require(_depositFeeBP <= 10000, "set: invalid deposit fee basis points");
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -122,18 +122,18 @@ contract MasterChef is Ownable {
         return _to.sub(_from).mul(BONUS_MULTIPLIER);
     }
 
-    // View function to see pending Gajs on frontend.
-    function pendingGaj(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending EGGs on frontend.
+    function pendingEgg(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accGajPerShare = pool.accGajPerShare;
+        uint256 accEggPerShare = pool.accEggPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 gajReward = multiplier.mul(gajPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accGajPerShare = accGajPerShare.add(gajReward.mul(1e12).div(lpSupply));
+            accEggPerShare = accEggPerShare.add(gajReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accGajPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accEggPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -159,19 +159,19 @@ contract MasterChef is Ownable {
         uint256 gajReward = multiplier.mul(gajPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
         gaj.mint(devaddr, gajReward.div(10));
         gaj.mint(address(this), gajReward);
-        pool.accGajPerShare = pool.accGajPerShare.add(gajReward.mul(1e12).div(lpSupply));
+        pool.accEggPerShare = pool.accEggPerShare.add(gajReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for GAJ allocation.
+    // Deposit LP tokens to MasterChef for EGG allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accGajPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accEggPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                safeGajTransfer(msg.sender, pending);
+                safeEggTransfer(msg.sender, pending);
             }
         }
         if(_amount > 0) {
@@ -184,7 +184,7 @@ contract MasterChef is Ownable {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accGajPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accEggPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -194,15 +194,15 @@ contract MasterChef is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accGajPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accEggPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
-            safeGajTransfer(msg.sender, pending);
+            safeEggTransfer(msg.sender, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accGajPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accEggPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -217,8 +217,8 @@ contract MasterChef is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe gaj transfer function, just in case if rounding error causes pool to not have enough GAJs.
-    function safeGajTransfer(address _to, uint256 _amount) internal {
+    // Safe gaj transfer function, just in case if rounding error causes pool to not have enough EGGs.
+    function safeEggTransfer(address _to, uint256 _amount) internal {
         uint256 gajBal = gaj.balanceOf(address(this));
         if (_amount > gajBal) {
             gaj.transfer(_to, gajBal);
@@ -242,5 +242,10 @@ contract MasterChef is Ownable {
     function updateEmissionRate(uint256 _gajPerBlock) public onlyOwner {
         massUpdatePools();
         gajPerBlock = _gajPerBlock;
+    }
+
+    //Only update before start of farm
+    function updateStartBlock(uint256 _startBlock) public onlyOwner {
+        startBlock = _startBlock;
     }
 }
