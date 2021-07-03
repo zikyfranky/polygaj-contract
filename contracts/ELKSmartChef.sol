@@ -14,13 +14,13 @@ contract SmartChef is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    // Info of each user.
+    /** @dev A struct storing user information */
     struct UserInfo {
         uint256 amount; // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
 
-    // Info of each pool.
+    /** @dev A struct storing pool information */
     struct PoolInfo {
         IERC20 lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. Rewards to distribute per block.
@@ -28,27 +28,34 @@ contract SmartChef is Ownable {
         uint256 accRewardPerShare; // Accumulated Rewards per share, times 1e18. See below.
     }
 
-    // The GAJ TOKEN!
+    /** @dev GAJ token contract */
     IERC20 public syrup;
 
-    // THE REWARD TOKEN
+    /** @dev The token that is rewarded to users */
     IERC20 public rewardToken;
 
-    // Reward tokens created per block.
+    /** @dev A number indicating the rewards per block */
     uint256 public rewardPerBlock;
-    // Maximum amount of GAJ that can be deposited
+
+    /** @dev A maximum deposit limit  */
     uint256 public maxDeposit;
-    // Info of each pool.
+
+    /** @dev An array of pool data */
     PoolInfo[] public poolInfo;
-    // Info of each user that stakes LP tokens.
+
+    /** @dev An array of user data */
     mapping(address => UserInfo) public userInfo;
-    // Total allocation poitns. Must be the sum of all allocation points in all pools.
-    uint256 private totalAllocPoint = 0;
-    // The block number when Reward mining starts.
+
+    /** @dev Sum of all allocation points in all pools */
+    uint256 private totalAllocPoint;
+
+    /** @dev Block number representing the start of reward mining  */
     uint256 public startBlock;
-    // The block number when Reward mining ends.
+
+    /** @dev Block number representing the end of reward mining */
     uint256 public bonusEndBlock;
 
+    /** @dev Burn multiplier, scaled by 1e3 */
     uint256 public burnMultiplier;
 
     event Deposit(address indexed user, uint256 amount);
@@ -78,16 +85,18 @@ contract SmartChef is Ownable {
         totalAllocPoint = 1000;
     }
 
+    /** @dev Stop rewards  */
     function stopReward() public onlyOwner {
         bonusEndBlock = block.number;
     }
 
+    /** @dev Update the end block  */
     function adjustBlockEnd() public onlyOwner {
         uint256 totalLeft = rewardToken.balanceOf(address(this));
         bonusEndBlock = block.number + totalLeft.div(rewardPerBlock);
     }
 
-    // Return reward multiplier over the given _from to _to block.
+    /** @return reward multiplier over the given block period */
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
         if (_to <= bonusEndBlock) {
             return _to.sub(_from);
@@ -98,7 +107,7 @@ contract SmartChef is Ownable {
         }
     }
 
-    // View function to see pending Reward on frontend.
+    /** @return The pending reward for a given user */
     function pendingReward(address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[_user];
@@ -112,7 +121,7 @@ contract SmartChef is Ownable {
         return user.amount.mul(accRewardPerShare).div(1e18).sub(user.rewardDebt);
     }
 
-    // Update reward variables of the given pool to be up-to-date.
+    /** @dev Update pool variables for a given pool */
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         if (block.number <= pool.lastRewardBlock) {
@@ -129,7 +138,7 @@ contract SmartChef is Ownable {
         pool.lastRewardBlock = block.number;
     }
 
-    // Stake SYRUP tokens to SmartChef
+    /** @dev Deposit stake tokens into the contract */
     function deposit(uint256 _amount) public {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
@@ -155,7 +164,7 @@ contract SmartChef is Ownable {
         emit Deposit(msg.sender, _amount);
     }
 
-    // Withdraw SYRUP tokens from STAKING.
+    /** @dev Withdraw tokens from the contract */
     function withdraw(uint256 _amount) public {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
@@ -174,7 +183,10 @@ contract SmartChef is Ownable {
         emit Withdraw(msg.sender, _amount);
     }
 
-    // Withdraw without caring about rewards. EMERGENCY ONLY.
+    /** 
+        @dev Withdraw, ignoring rewards. 
+        @notice EMERGENCY ONLY 
+    */
     function emergencyWithdraw() public {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
