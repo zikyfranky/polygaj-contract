@@ -14,6 +14,10 @@ contract SmartChef is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    /*************
+     * Variables *
+     *************/
+
     /** @dev A struct storing user information */
     struct UserInfo {
         uint256 amount; // How many LP tokens the user has provided.
@@ -62,6 +66,9 @@ contract SmartChef is Ownable {
     event Withdraw(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
+    /***************
+     * Constructor *
+     ***************/
     constructor(
         IERC20 _syrup,
         IERC20 _rewardToken,
@@ -85,61 +92,12 @@ contract SmartChef is Ownable {
         totalAllocPoint = 1000;
     }
 
-    /** @dev Stop rewards  */
-    function stopReward() public onlyOwner {
-        bonusEndBlock = block.number;
-    }
-
-    /** @dev Update the end block  */
-    function adjustBlockEnd() public onlyOwner {
-        uint256 totalLeft = rewardToken.balanceOf(address(this));
-        bonusEndBlock = block.number + totalLeft.div(rewardPerBlock);
-    }
-
-    /** @return reward multiplier over the given block period */
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        if (_to <= bonusEndBlock) {
-            return _to.sub(_from);
-        } else if (_from >= bonusEndBlock) {
-            return 0;
-        } else {
-            return bonusEndBlock.sub(_from);
-        }
-    }
-
-    /** @return The pending reward for a given user */
-    function pendingReward(address _user) external view returns (uint256) {
-        PoolInfo storage pool = poolInfo[0];
-        UserInfo storage user = userInfo[_user];
-        uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 cakeReward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accRewardPerShare = accRewardPerShare.add(cakeReward.mul(1e18).div(lpSupply));
-        }
-        return user.amount.mul(accRewardPerShare).div(1e18).sub(user.rewardDebt);
-    }
-
-    /** @dev Update pool variables for a given pool */
-    function updatePool(uint256 _pid) public {
-        PoolInfo storage pool = poolInfo[_pid];
-        if (block.number <= pool.lastRewardBlock) {
-            return;
-        }
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (lpSupply == 0) {
-            pool.lastRewardBlock = block.number;
-            return;
-        }
-        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 cakeReward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        pool.accRewardPerShare = pool.accRewardPerShare.add(cakeReward.mul(1e18).div(lpSupply));
-        pool.lastRewardBlock = block.number;
-    }
+    /********************
+     * External Functions *
+     *********************/
 
     /** @dev Deposit stake tokens into the contract */
-    function deposit(uint256 _amount) public {
+    function deposit(uint256 _amount) external {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
         require(pool.lpToken.balanceOf(address(this)) <= maxDeposit, "Deposit limit reached!!");
@@ -165,7 +123,7 @@ contract SmartChef is Ownable {
     }
 
     /** @dev Withdraw tokens from the contract */
-    function withdraw(uint256 _amount) public {
+    function withdraw(uint256 _amount) external {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -187,12 +145,69 @@ contract SmartChef is Ownable {
         @dev Withdraw, ignoring rewards. 
         @notice EMERGENCY ONLY 
     */
-    function emergencyWithdraw() public {
+    function emergencyWithdraw() external {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
         emit EmergencyWithdraw(msg.sender, user.amount);
+    }
+
+    /** @dev Stop rewards  */
+    function stopReward() external onlyOwner {
+        bonusEndBlock = block.number;
+    }
+
+    /** @dev Update the end block  */
+    function adjustBlockEnd() external onlyOwner {
+        uint256 totalLeft = rewardToken.balanceOf(address(this));
+        bonusEndBlock = block.number + totalLeft.div(rewardPerBlock);
+    }
+
+    /** @return The pending reward for a given user */
+    function pendingReward(address _user) external view returns (uint256) {
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[_user];
+        uint256 accRewardPerShare = pool.accRewardPerShare;
+        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+            uint256 cakeReward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accRewardPerShare = accRewardPerShare.add(cakeReward.mul(1e18).div(lpSupply));
+        }
+        return user.amount.mul(accRewardPerShare).div(1e18).sub(user.rewardDebt);
+    }
+
+    /********************
+     * Public Functions *
+     ********************/
+
+    /** @return reward multiplier over the given block period */
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+        if (_to <= bonusEndBlock) {
+            return _to.sub(_from);
+        } else if (_from >= bonusEndBlock) {
+            return 0;
+        } else {
+            return bonusEndBlock.sub(_from);
+        }
+    }
+
+    /** @dev Update pool variables for a given pool */
+    function updatePool(uint256 _pid) public {
+        PoolInfo storage pool = poolInfo[_pid];
+        if (block.number <= pool.lastRewardBlock) {
+            return;
+        }
+        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        if (lpSupply == 0) {
+            pool.lastRewardBlock = block.number;
+            return;
+        }
+        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+        uint256 cakeReward = multiplier.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        pool.accRewardPerShare = pool.accRewardPerShare.add(cakeReward.mul(1e18).div(lpSupply));
+        pool.lastRewardBlock = block.number;
     }
 }
